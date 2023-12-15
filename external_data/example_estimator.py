@@ -23,20 +23,20 @@ def _encode_dates(X):
     return X.drop(columns=["date"])
 
 
-def _merge_external_data(X):
-    file_path = Path(__file__).parent / "external_data.csv"
-    df_ext = pd.read_csv(file_path, parse_dates=["date"])
-
-    X = X.copy()
-    # When using merge_asof left frame need to be sorted
-    X["orig_index"] = np.arange(X.shape[0])
-    X = pd.merge_asof(
-        X.sort_values("date"), df_ext[["date", "t"]].sort_values("date"), on="date"
-    )
+#def _merge_external_data(X):
+#    file_path = Path(__file__).parent / "external_data.csv"
+#    df_ext = pd.read_csv(file_path, parse_dates=["date"])
+#
+#    X = X.copy()
+#    # When using merge_asof left frame need to be sorted
+#    X["orig_index"] = np.arange(X.shape[0])
+#    X = pd.merge_asof(
+#        X.sort_values("date"), df_ext[["date", "t"]].sort_values("date"), on="date"
+#    )
     # Sort back to the original order
-    X = X.sort_values("orig_index")
-    del X["orig_index"]
-    return X
+#    X = X.sort_values("orig_index")
+#    del X["orig_index"]
+#    return X
 
 
 def get_estimator():
@@ -44,7 +44,7 @@ def get_estimator():
     date_cols = ["year", "month", "day", "weekday", "hour"]
 
     categorical_encoder = OneHotEncoder(handle_unknown="ignore")
-    categorical_cols = ["counter_name", "site_name"]
+    categorical_cols = ["counter_name", "site_name", "coordinates"]
 
     preprocessor = ColumnTransformer(
         [
@@ -55,10 +55,26 @@ def get_estimator():
     regressor = Ridge()
 
     pipe = make_pipeline(
-        FunctionTransformer(_merge_external_data, validate=False),
         date_encoder,
         preprocessor,
         regressor,
     )
 
     return pipe
+
+data = pd.read_parquet('/kaggle/input/train-and-test/train.parquet')
+X_test = pd.read_parquet('/kaggle/input/train-and-test/final_test.parquet')
+
+y = data['log_bike_count']
+X = data[['counter_name', 'site_name', 'date', 'coordinates']]
+X_test = X_test[['counter_name', 'site_name', 'date', 'coordinates']]
+
+pipe = get_estimator()
+
+pipe.fit(X, y)
+pred = pipe.predict(X_test)
+
+pred_df = pd.DataFrame({'Id': X_test.index,
+                        'log_bike_count': pred})
+
+pred_df.to_csv('submission.csv', index=False)
