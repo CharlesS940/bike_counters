@@ -27,6 +27,7 @@ test_data = pd.read_parquet('/kaggle/input/train-and-test/final_test.parquet')
 #train_data = pd.read_parquet('train.parquet')
 #test_data = pd.read_parquet('final_test.parquet')
 
+# data from https://www.visualcrossing.com/weather-history/Paris%2CFrance
 def merge_data(data):
 
     # creating date column in correct format to merge datasets
